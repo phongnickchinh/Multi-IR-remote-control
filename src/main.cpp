@@ -3,6 +3,7 @@
 #include <IRsend.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <ir_Daikin.h>
 
 #include "config.h"
 #include "api_routes.h"
@@ -12,6 +13,7 @@
 
 IRrecv irrecv(kRecvPin);
 IRsend irsend(kSendPin);
+IRDaikinESP daikin(kSendPin);
 decode_results results;
 WebServer server(80);
 
@@ -41,6 +43,7 @@ void setup() {
   storageBegin();
   irrecv.enableIRIn();
   irsend.begin();
+  daikin.begin();
   connectWiFi();
   startAccessPoint();
   registerApiRoutes(server, irsend);

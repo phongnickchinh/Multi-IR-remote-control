@@ -64,19 +64,45 @@ String categoryCommandsJson(const String& category) {
 }
 
 bool sendCommand(IRsend& irsend, const String& category, const String& name) {
-  const IrCommand* cmd = findCommand(category, name);
-  if (!cmd) return false;
+  // 1. Nhánh Đèn và Quạt (Dùng mảng cấu trúc cũ)
+  if (category.equalsIgnoreCase("light") || category.equalsIgnoreCase("fan")) {
+    const IrCommand* cmd = findCommand(category, name);
+    if (!cmd) return false;
 
-  // Phân luồng giao thức để bắn mã tương ứng
-  if (cmd->protocol == NEC) {
-    irsend.sendNEC(cmd->code, cmd->bits);
-    return true;
+    if (cmd->protocol == NEC) {
+      irsend.sendNEC(cmd->code, cmd->bits);
+      return true;
+    } else if (cmd->protocol == PANASONIC) {
+      irsend.sendPanasonic64(cmd->code, cmd->bits, 2);
+      return true;
+    }
   } 
-  else if (cmd->protocol == PANASONIC) {
-    // Với mã Panasonic nguyên khối (48-bit), phải dùng hàm sendPanasonic64
-    irsend.sendPanasonic64(cmd->code, cmd->bits);
-    return true;
-  }
   
+  // 2. Nhánh MỚI dành riêng cho Điều hòa Daikin
+  else if (category.equalsIgnoreCase("daikin")) {
+    
+    if (name == "power_off") {
+      daikin.off();
+      daikin.send();
+      return true;
+    } 
+    else if (name == "cool_26") {
+      daikin.on();
+      daikin.setMode(kDaikinCool);
+      daikin.setFan(kDaikinFanAuto);
+      daikin.setTemp(26);
+      daikin.send(); // Thư viện tự động đóng gói cục data 216-bit và bắn đi!
+      return true;
+    }
+    else if (name == "cool_27") {
+      daikin.on();
+      daikin.setMode(kDaikinCool);
+      daikin.setFan(kDaikinFanAuto);
+      daikin.setTemp(27);
+      daikin.send();
+      return true;
+    }
+  }
+
   return false;
 }

@@ -3,7 +3,8 @@
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 #include <IRutils.h>
-
+#include <ir_Daikin.h>
+extern IRDaikinESP daikin;
 struct IrCommand {
   const char* name;
   decode_type_t protocol;
