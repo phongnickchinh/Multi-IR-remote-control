@@ -64,7 +64,7 @@ String categoryCommandsJson(const String& category) {
 }
 
 bool sendCommand(IRsend& irsend, const String& category, const String& name) {
-  // 1. Nhánh Đèn và Quạt (Dùng mảng cấu trúc cũ)
+  // Chỉ tìm và bắn lệnh cho Đèn và Quạt
   if (category.equalsIgnoreCase("light") || category.equalsIgnoreCase("fan")) {
     const IrCommand* cmd = findCommand(category, name);
     if (!cmd) return false;
@@ -78,31 +78,5 @@ bool sendCommand(IRsend& irsend, const String& category, const String& name) {
     }
   } 
   
-  // 2. Nhánh MỚI dành riêng cho Điều hòa Daikin
-  else if (category.equalsIgnoreCase("daikin")) {
-    
-    if (name == "power_off") {
-      daikin.off();
-      daikin.send();
-      return true;
-    } 
-    else if (name == "cool_26") {
-      daikin.on();
-      daikin.setMode(kDaikinCool);
-      daikin.setFan(kDaikinFanAuto);
-      daikin.setTemp(26);
-      daikin.send(); // Thư viện tự động đóng gói cục data 216-bit và bắn đi!
-      return true;
-    }
-    else if (name == "cool_27") {
-      daikin.on();
-      daikin.setMode(kDaikinCool);
-      daikin.setFan(kDaikinFanAuto);
-      daikin.setTemp(27);
-      daikin.send();
-      return true;
-    }
-  }
-
   return false;
 }
