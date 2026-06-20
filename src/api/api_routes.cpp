@@ -76,7 +76,7 @@ static void handleStatus(WebServer& server) {
   body += WiFi.isConnected() ? WiFi.localIP().toString() : String("0.0.0.0");
   body += "\",\"ap_ip\":\"";
   body += WiFi.softAPIP().toString();
-  body += "\",\"categories\":[\"light\"]}";
+body += "\",\"categories\":[\"light\", \"fan\"]}";
   sendJson(server, 200, body);
 }
 
