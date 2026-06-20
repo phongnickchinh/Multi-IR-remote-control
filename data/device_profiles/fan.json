@@ -1,0 +1,59 @@
+{
+  "category": "fan",
+  "commands": [
+    {
+      "name": "toggle",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210C8C",
+      "bits": 48
+    },
+    {
+      "name": "mode_1",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210C84",
+      "bits": 48
+    },
+    {
+      "name": "mode_2",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210C44",
+      "bits": 48
+    },
+    {
+      "name": "mode_3",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210CC4",
+      "bits": 48
+    },
+    {
+      "name": "timer_1h",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210C82",
+      "bits": 48
+    },
+    {
+      "name": "timer_3h",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210CC2",
+      "bits": 48
+    },
+    {
+      "name": "timer_6h",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210C62",
+      "bits": 48
+    },
+    {
+      "name": "cancel_timer",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210C02",
+      "bits": 48
+    },
+    {
+      "name": "sleep_mode",
+      "protocol": "PANASONIC",
+      "code": "0x40040B210C72",
+      "bits": 48
+    }
+  ]
+} 

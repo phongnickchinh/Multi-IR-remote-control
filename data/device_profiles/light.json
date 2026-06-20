@@ -1,0 +1,35 @@
+{
+  "category": "light",
+  "commands": [
+    {
+      "name": "toggle",
+      "protocol": "NEC",
+      "code": "0x807F00FF",
+      "bits": 32
+    },
+    {
+      "name": "temp_down",
+      "protocol": "NEC",
+      "code": "0x807F40BF",
+      "bits": 32
+    },
+    {
+      "name": "temp_up",
+      "protocol": "NEC",
+      "code": "0x807F50AF",
+      "bits": 32
+    },
+    {
+      "name": "mode_3",
+      "protocol": "NEC",
+      "code": "0x807F807F",
+      "bits": 32
+    },
+    {
+      "name": "brightness_down",
+      "protocol": "NEC",
+      "code": "0x807F20DF",
+      "bits": 32
+    }
+  ]
+}

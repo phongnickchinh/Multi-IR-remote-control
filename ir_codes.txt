@@ -1,0 +1,18 @@
+IR Code Mapping
+===============
+
+Format:
+Name = Protocol | HEX
+
+Current light codes are defined in `src/main.cpp`.
+
+Examples:
+Light_Toggle = NEC | 0x807F00FF
+Light_Temp_Down = NEC | 0x807F40BF
+Light_Temp_Up = NEC | 0x807F50AF
+Light_Mode_3 = NEC | 0x807F807F
+Light_Brightness_Down = NEC | 0x807F20DF
+
+Notes:
+- Ignore NEC_Repeat when storing button commands.
+- Add one line per remote button as you sniff more codes.
