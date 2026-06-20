@@ -17,21 +17,38 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
         .card-light { border-top-color: #fbbf24; }
         .card-fan { border-top-color: #38bdf8; }
         .card-daikin { border-top-color: #818cf8; }
-        .card-header { font-size: 18px; font-weight: bold; color: #334155; margin-bottom: 15px; }
+        .card-header { font-size: 18px; font-weight: bold; color: #334155; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         button { padding: 14px 8px; border-radius: 12px; border: 1px solid #e2e8f0; font-weight: bold; cursor: pointer; background: #f8fafc; color: #475569; font-size: 13px; transition: 0.1s; display: flex; align-items: center; justify-content: center; }
         button:active { transform: translateY(2px); background: #e2e8f0; }
         button.btn-toggle { grid-column: span 2; background: #ef4444; color: white; border: none; font-size: 16px; padding: 16px; }
+        
         .screen { background: #94a3b8; height: 110px; border-radius: 12px; margin-bottom: 15px; padding: 12px 15px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; color: #0f172a; font-weight: bold; border: 3px solid #64748b; box-shadow: inset 0 3px 6px rgba(0,0,0,0.25); }
         .screen-top { display: flex; justify-content: space-between; font-size: 14px; }
         .screen-center { display: flex; justify-content: center; align-items: center; font-size: 46px; font-family: 'Courier New', monospace; letter-spacing: -2px; }
         .screen-bottom { display: flex; justify-content: space-between; font-size: 12px; }
+        
         .row { display: flex; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
         .col { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        
         .btn-cool { background: #a7f3d0; border-color: #10b981; color: #065f46; }
         .btn-off { background: #fef08a; border-color: #eab308; color: #854d0e; }
         .btn-temp { height: 50px; font-size: 16px; background: white; }
         .log-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; color: #a5b4fc; padding: 15px; box-sizing: border-box; font-size: 13px; font-family: monospace; text-align: center; border-top: 2px solid #0f172a; z-index: 1000; }
+
+        /* Nút trợ giúp (?) */
+        .help-btn { padding: 0 !important; width: 28px !important; height: 28px !important; border-radius: 50% !important; background: #e2e8f0; color: #334155; font-size: 15px; border: none; flex-shrink: 0; }
+        
+        /* Modal (Popup) CSS */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fff; padding: 20px; border-radius: 16px; width: 90%; max-width: 340px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-content h3 { margin-top: 0; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; font-size: 18px; }
+        .modal-content p { font-size: 13.5px; color: #475569; margin: 10px 0; line-height: 1.5; border-bottom: 1px dashed #f1f5f9; padding-bottom: 8px; }
+        .modal-content p:last-child { border-bottom: none; }
+        .modal-content b { color: #0f172a; display: inline-block; min-width: 85px; }
+        .close-btn { position: absolute; top: 12px; right: 18px; font-size: 26px; font-weight: bold; color: #94a3b8; cursor: pointer; line-height: 1; }
+        .close-btn:hover { color: #ef4444; }
     </style>
 </head>
 <body>
@@ -49,7 +66,11 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
     </div>
 
     <div class="card card-daikin">
-        <div class="card-header">❄️ Điều Hòa Daikin</div>
+        <div class="card-header">
+            <span>❄️ Điều Hòa Daikin</span>
+            <button class="help-btn" onclick="openHelp()">?</button>
+        </div>
+        
         <div class="screen" id="lcd">
             <div class="screen-top">
                 <span id="lcd-mode">COOL</span>
@@ -107,6 +128,24 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
 
     <div class="log-bar" id="log">Hệ thống sẵn sàng...</div>
 
+    <div id="helpModal" class="modal" onclick="closeHelpOutside(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closeHelp()">&times;</span>
+            <h3>Hướng dẫn Daikin</h3>
+            <p><b>COOL:</b> Chế độ làm lạnh tiêu chuẩn. Cài đặt nhiệt độ theo ý muốn.</p>
+            <p><b>DRY:</b> Chế độ hút ẩm. Giúp phòng khô ráo trong những ngày nồm (máy sẽ tự ẩn nhiệt độ để tối ưu hút nước).</p>
+            <p><b>FAN ONLY:</b> Chỉ bật quạt phả hơi mát nhẹ như quạt tường, không làm lạnh (ẩn nhiệt độ).</p>
+            <p><b>OFF:</b> Tắt hoàn toàn điều hòa.</p>
+            <p><b>▲/▼ TEMP:</b> Tăng / Giảm nhiệt độ điều hòa (từ 18°C đến 32°C).</p>
+            <p><b>FAN:</b> Đổi tốc độ quạt (AUTO tự động, QUIET siêu êm, mức 1 đến 5).</p>
+            <p><b>POWERFUL:</b> Ép máy nén chạy công suất tối đa để làm lạnh cực nhanh.</p>
+            <p><b>SWING ↕:</b> Bật/Tắt chế độ tự động đảo vẫy gió lên xuống.</p>
+            <p><b>ON TIMER:</b> Hẹn giờ tự động BẬT máy sau số giờ nhất định (1H - 12H).</p>
+            <p><b>OFF TIMER:</b> Hẹn giờ tự động TẮT máy sau số giờ nhất định (1H - 12H).</p>
+            <p><b>CANCEL:</b> Hủy toàn bộ cài đặt hẹn giờ Bật/Tắt.</p>
+        </div>
+    </div>
+
 <script>
     const log = document.getElementById('log');
     let isRequesting = false;
@@ -114,6 +153,15 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
     function showLog(msg, isError = false) {
         log.style.color = isError ? '#fca5a5' : '#86efac';
         log.innerText = msg;
+    }
+
+    /* Logic bật tắt Modal Trợ giúp */
+    function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
+    function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+    function closeHelpOutside(event) {
+        if (event.target.id === 'helpModal') {
+            closeHelp();
+        }
     }
 
     async function sendSimpleAPI(category, command) {
@@ -126,7 +174,6 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
         isRequesting = false;
     }
 
-    // Biến lưu trữ thêm onTimer và offTimer (đơn vị: Giờ)
     let dkState = { power: true, mode: 'cool', temp: 28, fan: 'auto', swing: false, powerful: false, onTimer: 0, offTimer: 0 };
     const fanLevels = ['auto', 'quiet', '1', '2', '3', '4', '5'];
     
@@ -135,7 +182,6 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
         lcd.style.opacity = dkState.power ? '1' : '0.3';
         document.getElementById('lcd-mode').innerText = dkState.mode.toUpperCase();
         
-        // CẬP NHẬT: Ẩn hoàn toàn chữ số và ký hiệu °C khi ở chế độ Dry và Fan
         const hideTemp = (dkState.mode === 'fan' || dkState.mode === 'dry');
         document.getElementById('lcd-temp').innerText = hideTemp ? '--' : dkState.temp;
         document.getElementById('lcd-unit').style.display = hideTemp ? 'none' : 'inline';
@@ -144,7 +190,6 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
         document.getElementById('lcd-swing').innerText = dkState.swing ? '↕ SWING' : '';
         document.getElementById('lcd-powerful').innerText = dkState.powerful ? 'POWERFUL' : '';
         
-        // Hiển thị trạng thái Hẹn giờ
         let timerText = "";
         if (dkState.onTimer > 0) timerText += `ON: ${dkState.onTimer}H `;
         if (dkState.offTimer > 0) timerText += `OFF: ${dkState.offTimer}H`;
@@ -158,10 +203,9 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
     function toggleDaikinSwing() { if (!dkState.power) return; dkState.swing = !dkState.swing; updateDaikinLCD(); sendDaikinAPI(); }
     function toggleDaikinPowerful() { if (!dkState.power || dkState.mode === 'fan') return; dkState.powerful = !dkState.powerful; updateDaikinLCD(); sendDaikinAPI(); }
 
-    // Logic Tăng Hẹn Giờ
     function addTimer(type) {
         if (type === 'on') {
-            dkState.onTimer = dkState.onTimer >= 12 ? 1 : dkState.onTimer + 1; // Tối đa 12 tiếng rồi quay lại 1
+            dkState.onTimer = dkState.onTimer >= 12 ? 1 : dkState.onTimer + 1;
         } else {
             dkState.offTimer = dkState.offTimer >= 12 ? 1 : dkState.offTimer + 1;
         }
@@ -169,7 +213,6 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
         sendDaikinAPI();
     }
 
-    // Logic Hủy Hẹn Giờ
     function cancelTimer() {
         dkState.onTimer = 0;
         dkState.offTimer = 0;
@@ -179,7 +222,6 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
 
     async function sendDaikinAPI() {
         if(isRequesting) return; isRequesting = true;
-        // Chuyển đổi Giờ thành Phút (x60) để gửi xuống cho backend C++ xử lý
         const params = new URLSearchParams({ 
             category: 'daikin', 
             command: 'set_state', 
@@ -209,7 +251,37 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
         isRequesting = false;
     }
 
-    updateDaikinLCD();
+    async function syncDaikinState() {
+        showLog("Đang đồng bộ trạng thái từ ESP32...");
+        try {
+            const res = await fetch('/api/daikin/state');
+            if (res.ok) {
+                const data = await res.json();
+                // Nạp dữ liệu từ ESP32 vào biến dkState của Web
+                dkState.power = data.power;
+                dkState.mode = data.mode;
+                dkState.temp = data.temp;
+                dkState.fan = data.fan;
+                dkState.swing = data.swing;
+                dkState.powerful = data.powerful;
+                dkState.onTimer = data.onTimer;
+                dkState.offTimer = data.offTimer;
+                
+                updateDaikinLCD(); // Cập nhật màn hình LCD
+                showLog("✅ Đồng bộ hoàn tất!", false);
+            } else {
+                // Nếu lần đầu bật máy ESP32 chưa có dữ liệu, dùng mặc định
+                updateDaikinLCD();
+                showLog("Sẵn sàng.", false);
+            }
+        } catch (e) {
+            updateDaikinLCD();
+            showLog("Không thể đồng bộ: Dùng trạng thái mặc định", true);
+        }
+    }
+
+    // Tự động chạy hàm này ngay khi Web tải xong
+    window.onload = syncDaikinState;
 </script>
 </body>
 </html>

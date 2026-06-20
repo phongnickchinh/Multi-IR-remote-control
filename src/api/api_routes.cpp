@@ -85,8 +85,48 @@ static void handleSend(WebServer& server, IRsend& irsend) {
   }
 }
 
+static void handleGetDaikinState(WebServer& server) {
+  // Trích xuất dữ liệu từ đối tượng daikin đang lưu trên ESP32
+  String json = "{";
+  
+  // 1. Trạng thái Nguồn
+  json += "\"power\":" + String(daikin.getPower() ? "true" : "false") + ",";
+  
+  // 2. Chế độ (Mode)
+  uint8_t mode = daikin.getMode();
+  String modeStr = "cool"; // Mặc định
+  if (mode == kDaikinDry) modeStr = "dry";
+  else if (mode == kDaikinFan) modeStr = "fan";
+  json += "\"mode\":\"" + modeStr + "\",";
+  
+  // 3. Nhiệt độ
+  json += "\"temp\":" + String(daikin.getTemp()) + ",";
+  
+  // 4. Quạt (Fan)
+  uint8_t fan = daikin.getFan();
+  String fanStr = "auto";
+  if (fan == kDaikinFanQuiet) fanStr = "quiet";
+  else if (fan >= 1 && fan <= 5) fanStr = String(fan);
+  json += "\"fan\":\"" + fanStr + "\",";
+  
+  // 5. Đảo gió & Powerful
+  json += "\"swing\":" + String(daikin.getSwingVertical() ? "true" : "false") + ",";
+  json += "\"powerful\":" + String(daikin.getPowerful() ? "true" : "false") + ",";
+
+  // 6. SỬA LỖI: Lấy Hẹn giờ (Chỉ lấy nếu trạng thái đang được Enable)
+  int onTimerMins = daikin.getOnTimerEnabled() ? daikin.getOnTime() : 0;
+  int offTimerMins = daikin.getOffTimerEnabled() ? daikin.getOffTime() : 0;
+
+  json += "\"onTimer\":" + String(onTimerMins / 60) + ",";
+  json += "\"offTimer\":" + String(offTimerMins / 60);
+  
+  json += "}";
+  
+  sendJson(server, 200, json);
+}
 void registerApiRoutes(WebServer& server, IRsend& irsend) {
   server.on("/", HTTP_GET, [&](){ handleRoot(server); });
   server.on("/api/status", HTTP_GET, [&](){ handleStatus(server); });
   server.on("/api/ir/send", HTTP_GET, [&](){ handleSend(server, irsend); });
+  server.on("/api/daikin/state", HTTP_GET, [&](){ handleGetDaikinState(server); });
 }
