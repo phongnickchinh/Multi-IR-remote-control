@@ -4,6 +4,7 @@
 #include <WebServer.h>
 #include <WiFi.h>
 #include <ir_Daikin.h>
+#include <esp_wifi.h>
 
 #include "config.h"
 #include "api_routes.h"
@@ -22,16 +23,32 @@ SystemMode currentMode = MODE_WEB_SERVER;
 
 void connectWiFi() {
   if (kWifiSsid[0] == '\0') return;
-  WiFi.mode(WIFI_AP_STA);
+  
+  //Connect to WiFi in Station mode
+  WiFi.mode(WIFI_STA); 
   WiFi.begin(kWifiSsid, kWifiPassword);
   Serial.print("Connecting to WiFi");
   unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) { delay(500); Serial.print("."); }
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) { 
+    delay(500); 
+    Serial.print("."); 
+  }
   Serial.println();
-  if (WiFi.status() == WL_CONNECTED) { Serial.print("WiFi connected: "); Serial.println(WiFi.localIP()); }
-  else { Serial.println("WiFi connect failed, using AP only."); }
+  
+  if (WiFi.status() == WL_CONNECTED) { 
+    Serial.print("WiFi connected: "); 
+    Serial.println(WiFi.localIP()); 
+    
+    //Modem sleep
+    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+    Serial.println("Modem Sleep: KÍCH HOẠT (Giảm nhiệt độ chip)");
+    
+  } else { 
+    Serial.println("WiFi connect failed! (Chỉ chạy chế độ Sniffer hoặc khởi động lại)"); 
+  }
 }
 
+// This function is only needed if you want to run in AP mode, which is not recommended for this project due to heat issues.
 void startAccessPoint() {
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(kApSsid, kApPassword);
@@ -45,7 +62,8 @@ void setup() {
   irsend.begin();
   daikin.begin();
   connectWiFi();
-  startAccessPoint();
+  // startAccessPoint();  //only for AP mode, not needed for Station mode
+  
   registerApiRoutes(server, irsend);
   server.begin();
   Serial.println("System Ready.");
@@ -81,7 +99,7 @@ void loop() {
         
         // Khởi động lại WiFi như lúc setup
         connectWiFi();
-        startAccessPoint();
+        // startAccessPoint(); không cần cho Station mode
         
         currentMode = MODE_WEB_SERVER;
         Serial.println("- Hệ thống API Web Server đã sẵn sàng.");

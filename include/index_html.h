@@ -176,6 +176,66 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
 
     let dkState = { power: true, mode: 'cool', temp: 28, fan: 'auto', swing: false, powerful: false, onTimer: 0, offTimer: 0 };
     const fanLevels = ['auto', 'quiet', '1', '2', '3', '4', '5'];
+
+    const DAIKIN_DEBOUNCE_MS = 50;
+    const DAIKIN_THROTTLE_MS = 750;
+
+    let dkDebounceTimer = null;
+    let dkThrottleTimer = null;
+    let dkSending = false;
+    let dkLastSendTime = 0;
+    let dkPendingState = null;
+    let dkPendingPowerOff = false;
+
+    function buildCurrentDaikinState() {
+        return {
+            mode: dkState.mode,
+            temp: dkState.temp,
+            fan: dkState.fan,
+            swing: dkState.swing,
+            powerful: dkState.powerful,
+            onTimer: dkState.onTimer,
+            offTimer: dkState.offTimer
+        };
+    }
+
+    function requestDaikinSync() {
+        dkPendingPowerOff = false;
+        dkPendingState = buildCurrentDaikinState();
+        clearTimeout(dkDebounceTimer);
+        dkDebounceTimer = setTimeout(processDaikinQueue, DAIKIN_DEBOUNCE_MS);
+    }
+
+    function requestDaikinOff() {
+        dkPendingPowerOff = true;
+        dkPendingState = null;
+        clearTimeout(dkDebounceTimer);
+        dkDebounceTimer = setTimeout(processDaikinQueue, DAIKIN_DEBOUNCE_MS);
+    }
+
+    function processDaikinQueue() {
+        if (dkSending) return;
+
+        const elapsed = Date.now() - dkLastSendTime;
+
+        if (elapsed < DAIKIN_THROTTLE_MS) {
+            clearTimeout(dkThrottleTimer);
+            dkThrottleTimer = setTimeout(
+                processDaikinQueue,
+                DAIKIN_THROTTLE_MS - elapsed
+            );
+            return;
+        }
+
+        if (dkPendingPowerOff) {
+            sendDaikinOffNow();
+            return;
+        }
+
+        if (dkPendingState) {
+            sendDaikinStateNow(dkPendingState);
+        }
+    }
     
     function updateDaikinLCD() {
         const lcd = document.getElementById('lcd');
@@ -196,12 +256,13 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
         document.getElementById('lcd-timer').innerText = timerText.trim();
     }
 
-    function setDaikinMode(mode) { dkState.power = true; dkState.mode = mode; dkState.powerful = false; updateDaikinLCD(); sendDaikinAPI(); }
-    function turnOffDaikin() { dkState.power = false; updateDaikinLCD(); sendDaikinOffAPI(); }
-    function changeDaikinTemp(delta) { if (!dkState.power || dkState.mode === 'fan' || dkState.mode === 'dry') return; dkState.temp = Math.min(32, Math.max(18, dkState.temp + delta)); updateDaikinLCD(); sendDaikinAPI(); }
-    function changeDaikinFan() { if (!dkState.power) return; dkState.fan = fanLevels[(fanLevels.indexOf(dkState.fan) + 1) % fanLevels.length]; updateDaikinLCD(); sendDaikinAPI(); }
-    function toggleDaikinSwing() { if (!dkState.power) return; dkState.swing = !dkState.swing; updateDaikinLCD(); sendDaikinAPI(); }
-    function toggleDaikinPowerful() { if (!dkState.power || dkState.mode === 'fan') return; dkState.powerful = !dkState.powerful; updateDaikinLCD(); sendDaikinAPI(); }
+    
+function setDaikinMode(mode) { dkState.power = true; dkState.mode = mode; dkState.powerful = false; updateDaikinLCD(); requestDaikinSync(); }
+    function turnOffDaikin() { dkState.power = false; updateDaikinLCD(); requestDaikinOff(); }
+    function changeDaikinTemp(delta) { if (!dkState.power || dkState.mode === 'fan' || dkState.mode === 'dry') return; dkState.temp = Math.min(32, Math.max(18, dkState.temp + delta)); updateDaikinLCD(); requestDaikinSync(); }
+    function changeDaikinFan() { if (!dkState.power) return; dkState.fan = fanLevels[(fanLevels.indexOf(dkState.fan) + 1) % fanLevels.length]; updateDaikinLCD(); requestDaikinSync(); }
+    function toggleDaikinSwing() { if (!dkState.power) return; dkState.swing = !dkState.swing; updateDaikinLCD(); requestDaikinSync(); }
+    function toggleDaikinPowerful() { if (!dkState.power || dkState.mode === 'fan') return; dkState.powerful = !dkState.powerful; updateDaikinLCD(); requestDaikinSync(); }
 
     function addTimer(type) {
         if (type === 'on') {
@@ -210,46 +271,82 @@ const char WEB_UI[] PROGMEM = R"rawliteral(
             dkState.offTimer = dkState.offTimer >= 12 ? 1 : dkState.offTimer + 1;
         }
         updateDaikinLCD();
-        sendDaikinAPI();
+        requestDaikinSync();
     }
 
     function cancelTimer() {
         dkState.onTimer = 0;
         dkState.offTimer = 0;
         updateDaikinLCD();
-        sendDaikinAPI();
+        requestDaikinSync();
     }
 
-    async function sendDaikinAPI() {
-        if(isRequesting) return; isRequesting = true;
-        const params = new URLSearchParams({ 
-            category: 'daikin', 
-            command: 'set_state', 
-            mode: dkState.mode, 
-            temp: dkState.temp, 
-            fan: dkState.fan, 
-            swing: dkState.swing, 
-            powerful: dkState.powerful,
-            on_timer: dkState.onTimer * 60,
-            off_timer: dkState.offTimer * 60
-        });
-        showLog(`[DAIKIN] Đang nạp trạng thái...`);
+    async function sendDaikinStateNow(state) {
+        dkSending = true;
+        const snapshot = JSON.stringify(state);
+
         try {
+            const params = new URLSearchParams({
+                category: 'daikin',
+                command: 'set_state',
+                mode: state.mode,
+                temp: state.temp,
+                fan: state.fan,
+                swing: state.swing,
+                powerful: state.powerful,
+                on_timer: state.onTimer * 60,
+                off_timer: state.offTimer * 60
+            });
+
+            showLog('[DAIKIN] Đang gửi trạng thái...');
+
             const res = await fetch(`/api/ir/send?${params.toString()}`);
-            showLog(res.ok ? `✅ DAIKIN: Đã cập nhật!` : `❌ Lỗi Daikin`, !res.ok);
-        } catch (e) { showLog(`❌ Lỗi mạng`, true); }
-        isRequesting = false;
+
+            showLog(
+                res.ok ? '✅ DAIKIN: Đã cập nhật!' : '❌ Lỗi Daikin',
+                !res.ok
+            );
+        } catch (e) {
+            showLog(`❌ Lỗi mạng: ${e.message}`, true);
+        } finally {
+            dkSending = false;
+            dkLastSendTime = Date.now();
+
+            if (
+                dkPendingState &&
+                JSON.stringify(dkPendingState) === snapshot
+            ) {
+                dkPendingState = null;
+            }
+
+            processDaikinQueue();
+        }
     }
 
-    async function sendDaikinOffAPI() {
-        if(isRequesting) return; isRequesting = true;
-        showLog("[DAIKIN] Đang Tắt...");
+    async function sendDaikinOffNow() {
+        dkSending = true;
+
         try {
-            const res = await fetch(`/api/ir/send?category=daikin&command=power_off`);
-            showLog(res.ok ? "✅ DAIKIN: Đã TẮT máy." : "❌ Lỗi tắt máy", !res.ok);
-        } catch (e) { showLog(`❌ Lỗi mạng`, true); }
-        isRequesting = false;
+            showLog('[DAIKIN] Đang Tắt...');
+
+            const res = await fetch(
+                '/api/ir/send?category=daikin&command=power_off'
+            );
+
+            showLog(
+                res.ok ? '✅ DAIKIN: Đã TẮT máy.' : '❌ Lỗi tắt máy',
+                !res.ok
+            );
+        } catch (e) {
+            showLog(`❌ Lỗi mạng: ${e.message}`, true);
+        } finally {
+            dkSending = false;
+            dkLastSendTime = Date.now();
+            dkPendingPowerOff = false;
+            processDaikinQueue();
+        }
     }
+
 
     async function syncDaikinState() {
         showLog("Đang đồng bộ trạng thái từ ESP32...");
