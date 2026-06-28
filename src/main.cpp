@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include "api_routes.h"
+#include "ota_handler.h"
 #include "command_registry.h"
 #include "storage.h"
 #include "support/ir_sniffer.h"
@@ -65,6 +66,7 @@ void setup() {
   // startAccessPoint();  //only for AP mode, not needed for Station mode
   
   registerApiRoutes(server, irsend);
+  registerOtaRoutes(server);
   server.begin();
   Serial.println("System Ready.");
 }

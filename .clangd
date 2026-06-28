@@ -1,0 +1,29 @@
+CompileFlags:
+  Remove:
+    - -mlongcalls
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -fno-rtti
+    - -fno-jump-tables
+    - -Wno-frame-address
+    - -Wno-error=unused-but-set-variable
+    - -freorder-blocks
+  Add:
+    # C++ stdlib của toolchain Xtensa ESP32
+    - -IC:/Users/phamp/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/8.4.0
+    - -IC:/Users/phamp/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/8.4.0/xtensa-esp32-elf
+    # Arduino Update library
+    - -IC:/Users/phamp/.platformio/packages/framework-arduinoespressif32/libraries/Update/src
+    # Arduino WebServer library
+    - -IC:/Users/phamp/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src
+    # Arduino WiFi library
+    - -IC:/Users/phamp/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src
+    # Arduino FS library (dependency of WebServer)
+    - -IC:/Users/phamp/.platformio/packages/framework-arduinoespressif32/libraries/FS/src
+    # Arduino core
+    - -IC:/Users/phamp/.platformio/packages/framework-arduinoespressif32/cores/esp32
+    - -IC:/Users/phamp/.platformio/packages/framework-arduinoespressif32/variants/doitESP32devkitV1
+    # Đảm bảo target ESP32
+    - --target=xtensa
+    - -DESP32
+    - -DARDUINO=10812
